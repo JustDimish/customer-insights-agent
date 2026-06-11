@@ -4,7 +4,7 @@ set -e
 WWWROOT=/home/site/wwwroot
 
 echo "==> Installing Python dependencies..."
-pip install -r "$WWWROOT/backend/requirements.txt" --quiet
+pip install -r "$WWWROOT/backend/requirements.txt" --quiet --upgrade
 
 echo "==> Starting server..."
 cd "$WWWROOT/backend"
