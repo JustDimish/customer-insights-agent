@@ -1,14 +1,12 @@
 import json
-import os
 import time
 
-from openai import OpenAI
-
+import groq_client
 from database import get_db
 from stats import average_ticket, repeat_customer_rate, revenue_by_day, top_items
 
 _cache: dict = {"ts": 0.0, "summary": ""}
-_CACHE_TTL = 60  # seconds
+_CACHE_TTL = 60
 
 SYSTEM_PROMPT = (
     "You are a business analyst. Given JSON stats for a car wash, "
@@ -30,9 +28,7 @@ def get_insights() -> str:
     }
     db.close()
 
-    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+    response = groq_client.chat(
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(stats)},
@@ -41,7 +37,7 @@ def get_insights() -> str:
         temperature=0.3,
     )
 
-    summary = response.choices[0].message.content.strip()
+    summary = response["choices"][0]["message"]["content"].strip()
     _cache["ts"] = time.time()
     _cache["summary"] = summary
     return summary

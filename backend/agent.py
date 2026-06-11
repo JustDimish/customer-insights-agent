@@ -1,8 +1,6 @@
 import json
-import os
 
-from openai import OpenAI
-
+import groq_client
 from database import get_db
 from stats import TOOL_SCHEMAS, dispatch_tool
 
@@ -15,9 +13,7 @@ MAX_TURNS = 5
 
 
 def answer_question(question: str) -> str:
-    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
     db = get_db()
-
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": question},
@@ -25,33 +21,33 @@ def answer_question(question: str) -> str:
 
     try:
         for _ in range(MAX_TURNS):
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=messages,
+            response = groq_client.chat(
+                messages,
                 tools=TOOL_SCHEMAS,
                 tool_choice="auto",
                 max_tokens=512,
                 temperature=0.1,
             )
 
-            msg = response.choices[0].message
+            msg = response["choices"][0]["message"]
+            tool_calls = msg.get("tool_calls")
 
-            if not msg.tool_calls:
-                return msg.content.strip()
+            if not tool_calls:
+                return (msg.get("content") or "").strip()
 
-            messages.append({"role": "assistant", "content": msg.content, "tool_calls": [
-                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
-                for tc in msg.tool_calls
-            ]})
+            messages.append({
+                "role": "assistant",
+                "content": msg.get("content"),
+                "tool_calls": [
+                    {"id": tc["id"], "type": "function", "function": tc["function"]}
+                    for tc in tool_calls
+                ],
+            })
 
-            for tc in msg.tool_calls:
-                args = json.loads(tc.function.arguments or "{}")
-                result = dispatch_tool(tc.function.name, args, db)
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "content": result,
-                })
+            for tc in tool_calls:
+                args = json.loads(tc["function"].get("arguments") or "{}")
+                result = dispatch_tool(tc["function"]["name"], args, db)
+                messages.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
 
         return "I was unable to answer that question with the available data."
     finally:
