@@ -9,10 +9,17 @@ _cache: dict = {"ts": 0.0, "summary": ""}
 _CACHE_TTL = 60
 
 SYSTEM_PROMPT = (
-    "You are a business analyst. Given JSON stats for a car wash, "
-    "return 3-5 actionable insights in plain English. Be specific and cite the numbers. "
-    "Keep the response under 200 words."
+    "You are a business analyst specializing in car wash operations. "
+    "Given JSON performance data, provide 4-5 specific actionable insights. "
+    "Focus on top revenue drivers, customer loyalty patterns, peak periods, and growth opportunities. "
+    "Cite exact numbers. Use terms like 'transaction', 'service', 'wash' — never 'ticket'. "
+    "Keep response under 250 words."
 )
+
+
+def invalidate_cache() -> None:
+    _cache["ts"] = 0.0
+    _cache["summary"] = ""
 
 
 def get_insights() -> str:
@@ -33,7 +40,7 @@ def get_insights() -> str:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(stats)},
         ],
-        max_tokens=300,
+        max_tokens=350,
         temperature=0.3,
     )
 

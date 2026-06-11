@@ -37,6 +37,38 @@ def average_ticket(db: sqlite3.Connection) -> dict:
     return {"avg_ticket": row["avg"], "total_transactions": row["cnt"]}
 
 
+def revenue_by_weekday(db: sqlite3.Connection) -> list[dict]:
+    """GROUP BY day-of-week. Returns [{day: 'Mon', revenue: X, count: Y}]."""
+    day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    rows = db.execute(
+        """SELECT strftime('%w', date) AS dow,
+                  ROUND(SUM(amount), 2) AS revenue,
+                  COUNT(*) AS count
+           FROM transactions
+           GROUP BY dow
+           ORDER BY dow"""
+    ).fetchall()
+    result = []
+    for r in rows:
+        idx = int(r["dow"])
+        result.append({"day": day_names[idx], "revenue": r["revenue"], "count": r["count"]})
+    return result
+
+
+def revenue_by_month(db: sqlite3.Connection) -> list[dict]:
+    """GROUP BY year-month for the last 12 months. Returns [{month: '2025-01', revenue: X, count: Y}]."""
+    rows = db.execute(
+        """SELECT strftime('%Y-%m', date) AS month,
+                  ROUND(SUM(amount), 2) AS revenue,
+                  COUNT(*) AS count
+           FROM transactions
+           WHERE date >= date('now', '-12 months')
+           GROUP BY month
+           ORDER BY month"""
+    ).fetchall()
+    return [{"month": r["month"], "revenue": r["revenue"], "count": r["count"]} for r in rows]
+
+
 # Groq tool schemas — mirror the functions above
 TOOL_SCHEMAS = [
     {
@@ -55,7 +87,7 @@ TOOL_SCHEMAS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "n": {"type": "integer", "description": "Number of top items to return (default 5)"}
+                    "n": {"type": "integer", "description": "Number of top services to return (default 5)"}
                 },
                 "required": [],
             },
@@ -73,13 +105,29 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "average_ticket",
-            "description": "Returns the average transaction value and total transaction count.",
+            "description": "Returns the average transaction value and total number of services performed.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "revenue_by_weekday",
+            "description": "Returns total revenue and transaction count grouped by day of week (Sun-Sat). Useful for identifying the busiest days.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "revenue_by_month",
+            "description": "Returns total revenue and transaction count grouped by month for the last 12 months. Useful for identifying seasonal trends.",
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
 ]
 
-# Dispatcher: maps tool name → function call result
+
 def dispatch_tool(name: str, args: dict, db: sqlite3.Connection) -> str:
     if name == "revenue_by_day":
         return json.dumps(revenue_by_day(db))
@@ -89,4 +137,8 @@ def dispatch_tool(name: str, args: dict, db: sqlite3.Connection) -> str:
         return json.dumps(repeat_customer_rate(db))
     if name == "average_ticket":
         return json.dumps(average_ticket(db))
+    if name == "revenue_by_weekday":
+        return json.dumps(revenue_by_weekday(db))
+    if name == "revenue_by_month":
+        return json.dumps(revenue_by_month(db))
     raise ValueError(f"Unknown tool: {name}")
