@@ -1,0 +1,17 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.py[cod]
+*.db
+.pytest_cache/
+.venv/
+venv/
+
+# node
+node_modules/
+frontend/dist/
+
+# os
+.DS_Store
