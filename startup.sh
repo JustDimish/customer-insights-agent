@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-echo "==> Building frontend..."
-cd frontend
-npm ci --prefer-offline
-npm run build
-cd ..
+echo "==> Installing Python dependencies..."
+pip install -r backend/requirements.txt --quiet
 
-echo "==> Starting backend..."
-cd backend
-pip install -r requirements.txt --quiet
-cd ..
-
+echo "==> Starting server..."
 exec uvicorn backend.main:app --host 0.0.0.0 --port "${PORT:-8000}"
