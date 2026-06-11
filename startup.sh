@@ -6,8 +6,8 @@ WWWROOT=/home/site/wwwroot
 echo "==> Installing Python dependencies..."
 python3 -m pip install -r "$WWWROOT/backend/requirements.txt" --upgrade --quiet
 
-echo "==> Installed groq version:"
-python3 -c "import groq; print(groq.__version__)"
+echo "==> Installed httpx version:"
+python3 -c "import httpx; print(httpx.__version__)"
 
 echo "==> Starting server..."
 cd "$WWWROOT/backend"
