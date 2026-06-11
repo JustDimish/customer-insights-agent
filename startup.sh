@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
-set -e
+# Virtual environment lives in persistent /home/site/venv/ (Azure Files).
+# Created + populated once; all subsequent starts skip straight to uvicorn.
 
 WWWROOT=/home/site/wwwroot
+VENV=/home/site/venv
 
-echo "==> Installing Python dependencies..."
-python3 -m pip install -r "$WWWROOT/backend/requirements.txt" --upgrade --quiet
+if [ ! -f "$VENV/bin/uvicorn" ]; then
+    echo "==> Creating virtual environment..."
+    python3 -m venv "$VENV"
+    echo "==> Installing packages..."
+    "$VENV/bin/pip" install \
+        fastapi==0.115.5 \
+        "uvicorn[standard]==0.32.1" \
+        httpx \
+        python-dotenv==1.0.1 \
+        pydantic==2.10.3 \
+        python-multipart==0.0.20 \
+        --quiet --root-user-action=ignore
+    echo "==> Packages ready."
+fi
 
-echo "==> Installed httpx version:"
-python3 -c "import httpx; print(httpx.__version__)"
-
-echo "==> Starting server..."
+echo "==> Starting WashMetrics..."
 cd "$WWWROOT/backend"
-exec python3 -m uvicorn main:app --host 0.0.0.0 --port "${PORT:-8000}"
+exec "$VENV/bin/uvicorn" main:app \
+    --host 0.0.0.0 --port "${PORT:-8000}"
