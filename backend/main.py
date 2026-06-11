@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -75,6 +76,10 @@ def api_average_ticket():
 def api_insights():
     try:
         return {"summary": get_insights()}
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            return {"summary": "The AI service is temporarily rate-limited. Please refresh in a moment."}
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -91,6 +96,10 @@ def api_ask(req: QuestionRequest):
         raise HTTPException(status_code=400, detail="Question cannot be empty")
     try:
         return {"answer": answer_question(req.question)}
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            return {"answer": "The AI service is temporarily rate-limited. Please wait a moment and try again."}
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
