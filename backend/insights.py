@@ -2,7 +2,7 @@ import json
 import os
 import time
 
-from groq import Groq
+from openai import OpenAI
 
 from database import get_db
 from stats import average_ticket, repeat_customer_rate, revenue_by_day, top_items
@@ -30,7 +30,7 @@ def get_insights() -> str:
     }
     db.close()
 
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
+    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[

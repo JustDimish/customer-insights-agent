@@ -1,7 +1,7 @@
 import json
 import os
 
-from groq import Groq
+from openai import OpenAI
 
 from database import get_db
 from stats import TOOL_SCHEMAS, dispatch_tool
@@ -15,7 +15,7 @@ MAX_TURNS = 5
 
 
 def answer_question(question: str) -> str:
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
+    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
     db = get_db()
 
     messages = [

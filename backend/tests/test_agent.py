@@ -61,7 +61,7 @@ def test_agent_calls_tool_and_returns_grounded_answer(seeded_db, monkeypatch):
     mock_client = MagicMock()
     mock_client.chat.completions.create.side_effect = call_sequence
 
-    with patch("agent.Groq", return_value=mock_client):
+    with patch("agent.OpenAI", return_value=mock_client):
         answer = answer_question("What is my average ticket?")
 
     assert answer == grounded_answer
@@ -83,7 +83,7 @@ def test_agent_grounds_answer_in_tool_result(seeded_db, monkeypatch):
     mock_client = MagicMock()
     mock_client.chat.completions.create.side_effect = capture_create
 
-    with patch("agent.Groq", return_value=mock_client):
+    with patch("agent.OpenAI", return_value=mock_client):
         answer_question("Average ticket?")
 
     # Second call messages must include a 'tool' role message
@@ -102,7 +102,7 @@ def test_agent_no_hallucination_without_tools(seeded_db, monkeypatch):
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = _make_response(content=direct_answer)
 
-    with patch("agent.Groq", return_value=mock_client):
+    with patch("agent.OpenAI", return_value=mock_client):
         answer = answer_question("Tell me something.")
 
     assert answer == direct_answer
